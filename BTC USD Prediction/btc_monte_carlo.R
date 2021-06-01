@@ -55,6 +55,7 @@ print(paste0("Low: ",round((low/trials)*100,1),"%, High: ",round(high/trials,1),
 changeLevelLow = 25000/current_price
 changeLevelHigh = 2-changeLevelLow
 
+# see whether a fluctuation of the necessary size (see above) in the necessary timeframe happened for a given historical point
 getFluctuationYN = function(dte,price){
   tmp = df[which(df$dte %in% seq.Date(from = dte,to = dte+remaining_days,by="days")),"BTC-USD.Close"]
   checkHigh = price*changeLevelHigh
@@ -69,12 +70,16 @@ getFluctuationYN = function(dte,price){
 df$fluct = unlist(mapply(FUN = getFluctuationYN,df$dte,df$`BTC-USD.Close`))
 df2 = df[which(df$dte < (mostRecentDate - remaining_days)),]
 
+# Estimate dip chance using % of days followed by a large enough dip
+# High includes data for which the full timeframe hasn't passed (less than 31 days as of 5/31) and thus nets the recent sharp drop, giving a higher estimate
 print(paste0("Dip chance (low): ",round(length(which(df$fluct == TRUE))/nrow(df),3)*100,"%"))
 print(paste0("Dip chance (high): ",round(length(which(df2$fluct == TRUE))/nrow(df2),3)*100,"%"))
 
 
-# Test brier scores with different current price weights (sample with large fluctuations too small, results overfitted)
+# Test historic performance with different current price weights and sign flip chances 
+# (The sample with large fluctuations is too small, I wouldn't say the below results are useful)
 
+# More general sign flip function
 u = function(thold=0.3333){
   tmp = runif(1)
   out = 1
@@ -82,6 +87,7 @@ u = function(thold=0.3333){
   return(out)
 }
 
+# Run the monte carlo script from above at a historical point, with variable current price weight and sign flip chance
 getNeitherPrediction = function(startDate,curr_price_weight=0.2,thold = 0.3333){
   expiration = startDate + remaining_days
   current_price = as.numeric(`BTC-USD`[which(as.Date(rownames(as.data.frame(`BTC-USD`))) == startDate),"BTC-USD.Close"])
@@ -114,9 +120,11 @@ getNeitherPrediction = function(startDate,curr_price_weight=0.2,thold = 0.3333){
 testFrame = data.frame(dte = seq.Date(from = as.Date("2021-02-14"),to = (mostRecentDate - remaining_days),by="days"))
 testFrame$dayPrice = unlist(lapply(testFrame$dte,FUN = function(x) df[which(df$dte == x),"BTC-USD.Close"]))
 
+# Iterate through different current price weights, get chance of no large change                                   
 for(i in seq(0.05,0.5,0.05)){
   testFrame[,paste0("trialWeight",i)] = unlist(lapply(testFrame$dte,FUN = getNeitherPrediction,curr_price_weight = i))
 }
+# Iterate through different sign flip chances, get chance of no large change                                     
 for(i in seq(0.05,0.5,0.05)){
   testFrame[,paste0("trialFlip",i)] = unlist(lapply(testFrame$dte,FUN = getNeitherPrediction,thold = i))
 }
@@ -126,6 +134,7 @@ testFrame$fluct = unlist(mapply(FUN = getFluctuationYN,testFrame$dte,testFrame$d
 testFrame[which(testFrame$fluct == FALSE),"fluct2"] = 1
 testFrame[which(testFrame$fluct == TRUE),"fluct2"] = 0
 
+# Get Brier scores for each flip chance                                   
 for(i in seq(0.05,0.5,0.05)){
   out = mean(unlist(mapply(FUN = function(x,y) (y-x)^2,testFrame$fluct2,testFrame[,paste0("trialFlip",i)])))
   print(paste0("Flip Chance of ",i,": ",out))
