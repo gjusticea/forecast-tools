@@ -61,6 +61,7 @@ getFluctuationYN = function(dte,price){
   checkLow = price*changeLevelLow
   
   out = FALSE
+  # if(min(tmp) >= checkHigh) out = TRUE
   if(min(tmp) <= checkLow) out = TRUE
   
   return(out)
