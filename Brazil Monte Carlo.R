@@ -7,6 +7,8 @@ dat = fread("~/GJP/OWID Brazil Raw.csv")
 endDate = as.Date("2021-07-29")
 dat$date = as.Date(dat$date,format="%m/%d/%Y")
 dat$change = dat$new_cases_smoothed - c(0,unlist(dat[1:(nrow(dat)-1),"new_cases_smoothed"]))
+dat$changePerc = (dat$new_cases_smoothed - c(0,unlist(dat[1:(nrow(dat)-1),"new_cases_smoothed"])))/c(0,unlist(dat[1:(nrow(dat)-1),"new_cases_smoothed"]))
+dat = dat[c(2:nrow(dat)),]
 
 # This lets me decide what period of time I want to sample from, I'm looking at consistently declining periods
 dat$Category = NA
@@ -41,10 +43,32 @@ getProbs = function(periods=c("P1","P2")){
     adjSum = runningSum + (diffRatio*lastLevel)
     if(adjSum > 19000000) above19 = above19 + 1
   }
-  print(paste0("Last Level: ",lastLevel))
+  print(paste0("Above 19M: ",round((above19/trials)*100),"%"))
+}
+
+# Monte Carlo using probabilities instead of raw changes
+getProbsPercent = function(periods=c("P1","P2")){
+  days = endDate - max(dat$date)
+  shiftPool = as.numeric(unlist(dat[which(dat$Category %in% periods),"changePerc"]))
+  
+  trials = 20000
+  above19 = 0
+  
+  for(i in 1:trials){
+    runningSum = sum(dat$new_cases_smoothed,na.rm=TRUE)
+    level = as.numeric(dat[nrow(dat),"new_cases_smoothed"])
+    for(j in 1:days){
+      dayChange = sample(shiftPool,1)
+      level = level * (1+dayChange)
+      if(j == days) lastLevel = level
+      runningSum = runningSum + level
+    }
+    adjSum = runningSum + (diffRatio*lastLevel)
+    if(adjSum > 19000000) above19 = above19 + 1
+  }
   print(paste0("Above 19M: ",round((above19/trials)*100),"%"))
 }
 
 getProbs()
-
+getProbsPercent()
 
