@@ -25,7 +25,7 @@ df$Previous = c(NA,df[c(1:(nrow(df)-1)),"UBER.Close"])
 df = df[which(!is.na(df$Previous)),]
 df$dte = as.Date(rownames(df))
 shifts = (df$`UBER.Close`/df$Previous)-1
-# Cut out the pre-/post-pandemic spike/drop, I'm looking for moving volatility with this script
+# Cut out the large shifts around COVID and the CA referendum, I'm looking for moving volatility with this script
 shifts = shifts[which(abs(shifts) <= .15)]
 
 sharesOutstanding = 1.87
