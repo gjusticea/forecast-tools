@@ -49,4 +49,4 @@ for(j in 1:trials){
   if(cap > 150) top150 = top150 + 1
 }
 
-print(paste0("%, Below 75: ",round((sub75/trials)*100,1),"%, 75-100: ",round((mid75100/trials)*100,1),"%, 100-125: ",round((mid100125/trials)*100,1),"%, 125-150: ",round((mid125150/trials)*100,1),"%, 150+: ",round((top150/trials)*100,1)))
+print(paste0("Below 75: ",round((sub75/trials)*100,1),"%, 75-100: ",round((mid75100/trials)*100,1),"%, 100-125: ",round((mid100125/trials)*100,1),"%, 125-150: ",round((mid125150/trials)*100,1),"%, 150+: ",round((top150/trials)*100,1)))
