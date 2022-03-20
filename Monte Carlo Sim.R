@@ -10,13 +10,13 @@ runMC = function(symbol,thold,exp,trials=10000,strt=as.character(Sys.Date()-365)
   #1/2 chance of sign flip
   u = function() return(sample(c(-1,1),1))
   
-  #pull the most recent data on FB from Yahoo via quantmod package
+  # pull the most recent data from Yahoo via quantmod package
   getSymbols(symbol,from=strt,warnings = FALSE,auto.assign = TRUE)
   phist = get(symbol)
   phist = phist[c(1:(nrow(phist)-1))]
   colnames(phist) = c("Open","High","Low","Close","Volume","Adjusted")
   
-  #see what the most recent day with available data is (data for the current day isn't always available)
+  # see what the most recent day with available data is (data for the current day isn't always available)
   mostRecentDate = max(as.Date(rownames(as.data.frame(phist))))
   phist = phist[which(!is.na(phist$Close)),]
   
