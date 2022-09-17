@@ -1,0 +1,55 @@
+library(data.table)
+library(tidyverse)
+
+startDate = as.Date("2021-01-01")
+endDate = as.Date("2022-10-14")
+trials = 20000
+
+################################################################################
+# Pull the most recent download
+# Get changes over time
+adr = file.info(list.files("C:/Users/slapt/Downloads",full.names = TRUE)) 
+dat = adr %>%
+  mutate(fln = rownames(adr)) %>%
+  filter(grepl("approval_topline",fln)) %>%
+  filter(ctime == max(ctime)) %>%
+  pull(fln) %>%
+  fread() %>%
+  filter(subgroup == "All polls") %>%
+  select(modeldate,approve_estimate) %>%
+  mutate(modeldate = as.Date(modeldate,format="%m/%d/%Y")) %>%
+  arrange(modeldate) %>%
+  mutate(previous = lag(approve_estimate),
+         change = approve_estimate - previous) %>%
+  filter(modeldate >= startDate,
+         !is.na(change))
+
+daysRemaining = as.numeric(endDate - max(dat$modeldate))
+u = function() return(sample(c(-1,1),1))
+lvl = c()
+for(j in 1:trials){
+  # Start at most recent approval level
+  apr = as.numeric(dat[which.max(dat$modeldate),"approve_estimate"])
+
+  # For every remaining day, add a random sign-neutral change
+  for(i in 1:daysRemaining){
+    apr = apr + (abs(sample(dat$change,1)) * u())
+  }
+  lvl = c(lvl,apr)
+}
+
+# Summarize results
+outcomes = data.frame(lvl = lvl) %>%
+  mutate(bucket = case_when(
+    lvl < 38 ~ "Lower than 38.0%",
+    lvl <= 42 ~ "Between 38.0% and 42.0%, inclusive",
+    lvl < 46 ~ "Higher than 42.0% but lower than 46.0%",
+    lvl <= 50 ~ "Between 46.0% and 50.0%, inclusive",
+    lvl > 50 ~ "Higher than 50.0%"
+  )) %>%
+  group_by(bucket) %>%
+  summarize(n = length(bucket),
+            avg = mean(lvl)) %>%
+  mutate(perc = n/sum(n)) %>%
+  arrange(avg)
+outcomes
